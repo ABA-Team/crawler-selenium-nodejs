@@ -2,11 +2,11 @@ const {Builder, until} = require('selenium-webdriver');
 
 const fs = require('fs');
 let driver = new Builder()
-    .forBrowser('firefox')
+    .forBrowser('chrome')
     .usingServer(process.env.SELENIUM_REMOTE_URL || 'http://localhost:4444/wd/hub')
     .build();
 
-let categoryUrl = "https://s.taobao.com/search?spm=a21wu.241046-global.6977698868.96.73b52f60D9FfWb&q=%E9%9E%8B%E5%8C%85&acm=lb-zebra-241046-2058600.1003.4.1797247&scm=1003.4.lb-zebra-241046-2058600.OTHER_14950684615043_1797247";
+let categoryUrl = "https://www.fahasa.com/sach-trong-nuoc/van-hoc-trong-nuoc/tieu-thuyet.html";
 
 let argv_url = process.argv[2];
 if (argv_url && argv_url.indexOf("taobao.com")) {
@@ -15,13 +15,12 @@ if (argv_url && argv_url.indexOf("taobao.com")) {
 
 console.log({categoryUrl});
 driver.get(categoryUrl)
-    .then(() => driver.wait(until.titleContains('淘宝搜索'), 1000))
+    .then(() => driver.wait(until.titleContains('FAHASA.COM'), 1000))
     .then(() => driver.executeScript("window.scrollTo(0, document.body.scrollHeight);"))
     .then(() => driver.getPageSource())
     .then((source) => {
         const $ = require('cheerio').load(source);
-        let prods = getProductElements($).map(ele => extractProductInfo(ele));
-        saveText2File(`./temp/products_${process.argv[3] || Date.now()}.json`, JSON.stringify(prods));
+        getProductElements($).map(ele =>  getPage(ele));
     })
     .then(() => {
         driver.quit();
@@ -29,22 +28,98 @@ driver.get(categoryUrl)
 
 const getProductElements = ($) => {
     let productEles = [];
-    $('#mainsrp-itemlist').find('> div > div > div:nth-child(1) > div').each((_, ele) => {
+    $('.category-products').find('.product-name').each((_, ele) => {
         productEles.push($(ele));
     });
     return productEles;
 };
 
+const  getPage = ($) => {
+    let url = $.find('a').attr("href");
+    let title = $.find('a').attr("title");
+    driver.get(url)
+    .then(() => driver.wait(until.titleContains('FAHASA.COM'), 1000))
+    .then(() => driver.executeScript("window.scrollTo(0, document.body.scrollHeight);"))
+    .then(() => driver.getPageSource())
+    .then((source) => {
+        console.log(url);
+        const $ = require('cheerio').load(source);
+        let prods = extractProductInfo($);
+        saveText2File(`./temp/products_${title}.json`, JSON.stringify(prods));
+    })
+    .then(() => {
+        //driver.quit();
+    });
+}
+
 const extractProductInfo = ($) => {
-    let title = normalizeText($.find('.row.row-2.title > a').text());
-    let price = normalizeText($.find('.price.g_price.g_price-highlight').text());
-    let thumb = $.find('.pic > a > img').attr('src');
-    let link = $.find('.pic > a').attr('href');
+    let title = $('.product-name h1').html();//normalizeText($.find('.row.row-2.title > a').text());
+    let image = $('.fhs-p-img').attr('src');
+    let oldPrice = normalizeText($('.old-price span.price').html());
+    let specialPrice = normalizeText($('.special-price span.price').html());
+    let discount = $('.label-pro-sale span').html();
+    let discriptionTile = $('.short-description span').html();
+    let discription = normalizeText($('.short-description').clone().children().remove().end().text());
+    let discriptionFull = normalizeText($('#product_tabs_description_contents').clone().children("h2").remove().end().text());
+    let tacgia = null;
+    let nguoidich = null;
+    let nxb = null;
+    let namXB = null;
+    let trongluong = null;
+    let kichthuoc = null;
+    let sotrang = null;
+    let hinhthuc = null;
+    let ngonngu = null;
+    $('#product-attribute-specs-table > tbody  > tr').each(function(i, tr) {
+        if($(tr).find('.label').text() == "Tác giả"){
+            tacgia = normalizeText($(tr).find('.data').html());
+        }
+        else if($(tr).find('.label').text() == "Người Dịch"){
+            nguoidich = normalizeText($(tr).find('.data').html());
+        }
+        else if($(tr).find('.label').text() == "NXB"){
+            nxb = normalizeText($(tr).find('.data').html());
+        }
+        else if($(tr).find('.label').text() == "Năm XB"){
+            namXB = normalizeText($(tr).find('.data').html());
+        }
+        else if($(tr).find('.label').text() == "Trọng lượng (gr)"){
+            trongluong = normalizeText($(tr).find('.data').html());
+        }
+        else if($(tr).find('.label').text() == "Kích thước (cm)"){
+            kichthuoc = normalizeText($(tr).find('.data').html());
+        }
+        else if($(tr).find('.label').text() == "Số trang"){
+            sotrang = normalizeText($(tr).find('.data').html());
+        }
+        else if($(tr).find('.label').text() == "Hình thức"){
+            hinhthuc = normalizeText($(tr).find('.data').html());
+        }
+        else if($(tr).find('.label').text() == "Ngôn ngữ"){
+            ngonngu = normalizeText($(tr).find('.data').html());
+        }
+    });
+    //let price = normalizeText($.find('.price.g_price.g_price-highlight').text());
+    //let thumb = $.find('.pic > a > img').attr('src');
+    //let link = $.find('.pic > a').attr('href');
     return {
         title,
-        price,
-        thumb,
-        link
+        image,
+        oldPrice,
+        specialPrice,
+        discount,
+        discriptionTile,
+        discription,
+        discriptionFull,
+        tacgia,
+        nguoidich,
+        nxb,
+        namXB,
+        trongluong,
+        kichthuoc,
+        sotrang,
+        hinhthuc,
+        ngonngu,
     };
 };
 
