@@ -6,7 +6,7 @@ let driver = new Builder()
     .usingServer(process.env.SELENIUM_REMOTE_URL || 'http://localhost:4444/wd/hub')
     .build();
 
-let categoryUrl = "https://www.fahasa.com/sach-trong-nuoc/van-hoc-trong-nuoc/tieu-thuyet.html";
+let categoryUrl = "https://www.fahasa.com/sach-trong-nuoc/kinh-te-chinh-tri-phap-ly.html";
 
 let argv_url = process.argv[2];
 if (argv_url && argv_url.indexOf("taobao.com")) {
@@ -124,6 +124,7 @@ const extractProductInfo = ($) => {
 };
 
 const normalizeText = (text) => {
+    if(text == null) return null;
     return text.replace(/\\n/g, '').trim();
 };
 
