@@ -6,7 +6,7 @@ let driver = new Builder()
     .usingServer(process.env.SELENIUM_REMOTE_URL || 'http://localhost:4444/wd/hub')
     .build();
 
-let categoryUrl = "https://www.fahasa.com/sach-trong-nuoc/kinh-te-chinh-tri-phap-ly.html";
+let categoryUrl = "https://www.fahasa.com/sach-trong-nuoc/khoa-hoc-ky-thuat/khoa-hoc-vu-tru/page/2.html";
 
 let argv_url = process.argv[2];
 if (argv_url && argv_url.indexOf("taobao.com")) {
@@ -23,6 +23,7 @@ driver.get(categoryUrl)
         getProductElements($).map(ele =>  getPage(ele));
     })
     .then(() => {
+        console.log("Complete!!!!!!!!!!!!!!!!!")
         driver.quit();
     });
 
@@ -43,7 +44,7 @@ const  getPage = ($) => {
     .then(() => driver.getPageSource())
     .then((source) => {
         console.log(url);
-        const $ = require('cheerio').load(source);
+        const $ = require('cheerio').load(source,{decodeEntities: false});
         let prods = extractProductInfo($);
         saveText2File(`./temp/products_${title}.json`, JSON.stringify(prods));
     })
@@ -53,7 +54,9 @@ const  getPage = ($) => {
 }
 
 const extractProductInfo = ($) => {
-    let title = $('.product-name h1').html();//normalizeText($.find('.row.row-2.title > a').text());
+    let title = $('.col-md-7 h1').html();//normalizeText($.find('.row.row-2.title > a').text());
+    if(!title)
+        title = $('title').text().split(" - ")[0];
     let image = $('.fhs-p-img').attr('src');
     let oldPrice = normalizeText($('.old-price span.price').html());
     let specialPrice = normalizeText($('.special-price span.price').html());
